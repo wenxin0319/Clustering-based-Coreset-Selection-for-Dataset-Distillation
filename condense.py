@@ -5,7 +5,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torchvision import datasets, transforms
-from data import transform_imagenet, transform_cifar, transform_svhn, transform_mnist, transform_fashion, transform_tinyimagenet
+from data import transform_imagenet, transform_cifar, transform_svhn, transform_mnist, transform_fashion, \
+    transform_tinyimagenet
 from data import TensorDataset, ImageFolder, save_img
 from data import ClassDataLoader, ClassMemDataLoader, MultiEpochsDataLoader
 from data import MEANS, STDS
@@ -16,9 +17,12 @@ from misc import utils
 from math import ceil
 import glob
 from new_strategy import NEW_Strategy
+
+
 class Synthesizer():
     """Condensed data class
     """
+
     def __init__(self, args, nclass, nchannel, hs, ws, device='cuda'):
         self.ipc = args.ipc
         self.nclass = nclass
@@ -46,12 +50,10 @@ class Synthesizer():
         self.resize = nn.Upsample(size=self.size, mode='bilinear')
         print(f"Factor: {self.factor} ({self.decode_type})")
 
-
-
     def init(self, loader, model, init_type='noise'):
         """Condensed data initialization
         """
-        
+
         if init_type == 'random':
             print("Random initialize synset")
             for c in range(self.nclass):
@@ -61,7 +63,7 @@ class Synthesizer():
         elif init_type == 'mix':
             print("Mixed initialize synset")
             for c in range(self.nclass):
-                img, _ = loader.class_sample(c, self.ipc * self.factor**2)
+                img, _ = loader.class_sample(c, self.ipc * self.factor ** 2)
                 img = img.data.to(self.device)
 
                 s = self.size[0] // self.factor
@@ -77,7 +79,7 @@ class Synthesizer():
                         w_r = s + 1 if j < remained else s
                         img_part = F.interpolate(img[k * n:(k + 1) * n], size=(h_r, w_r))
                         self.data.data[n * c:n * (c + 1), :, h_loc:h_loc + h_r,
-                                       w_loc:w_loc + w_r] = img_part
+                        w_loc:w_loc + w_r] = img_part
                         w_loc += w_r
                         k += 1
                     h_loc += h_r
@@ -85,7 +87,6 @@ class Synthesizer():
         elif init_type == 'noise':
             pass
 
-    
     def parameters(self):
         parameter_list = [self.data]
         return parameter_list
@@ -106,7 +107,7 @@ class Synthesizer():
         if remained > 0:
             img = F.pad(img, pad=(0, factor - remained, 0, factor - remained), value=0.5)
         s_crop = ceil(h / factor)
-        n_crop = factor**2
+        n_crop = factor ** 2
 
         cropped = []
         for i in range(factor):
@@ -144,7 +145,7 @@ class Synthesizer():
         idx = 0
         decoded_total = 0
         for factor in range(factor_max, 0, -1):
-            decode_size = factor**2
+            decode_size = factor ** 2
             if factor > 1:
                 n = min(bound_cur // decode_size, budget)
             else:
@@ -244,7 +245,7 @@ class Synthesizer():
         test_data(args, loader, val_loader, test_resnet=False, logger=logger)
 
         if bench and not (args.dataset in ['mnist', 'fashion']):
-            test_data(args, loader, val_loader, test_resnet=True, logger=logger)
+            test_data(args, loader, val_loader, test_resnet=False, logger=logger)
 
 
 def load_resized_data(args):
@@ -254,22 +255,22 @@ def load_resized_data(args):
         train_dataset = datasets.CIFAR10(args.data_dir, download=True, train=True, transform=transforms.ToTensor())
         normalize = transforms.Normalize(mean=MEANS['cifar10'], std=STDS['cifar10'])
         transform_test = transforms.Compose([transforms.ToTensor(), normalize])
-        val_dataset = datasets.CIFAR10(args.data_dir, download=True,train=False, transform=transform_test)
+        val_dataset = datasets.CIFAR10(args.data_dir, download=True, train=False, transform=transform_test)
         train_dataset.nclass = 10
 
     elif args.dataset == 'cifar100':
-        train_dataset = datasets.CIFAR100(args.data_dir,download=True,
+        train_dataset = datasets.CIFAR100(args.data_dir, download=True,
                                           train=True,
                                           transform=transforms.ToTensor())
 
         normalize = transforms.Normalize(mean=MEANS['cifar100'], std=STDS['cifar100'])
         transform_test = transforms.Compose([transforms.ToTensor(), normalize])
-        val_dataset = datasets.CIFAR100(args.data_dir, download=True,train=False, transform=transform_test)
+        val_dataset = datasets.CIFAR100(args.data_dir, download=True, train=False, transform=transform_test)
         train_dataset.nclass = 100
 
     elif args.dataset == 'svhn':
         train_dataset = datasets.SVHN(os.path.join(args.data_dir, 'svhn'),
-                                      split='train',download=True,
+                                      split='train', download=True,
                                       transform=transforms.ToTensor())
         train_dataset.targets = train_dataset.labels
 
@@ -277,30 +278,30 @@ def load_resized_data(args):
         transform_test = transforms.Compose([transforms.ToTensor(), normalize])
 
         val_dataset = datasets.SVHN(os.path.join(args.data_dir, 'svhn'),
-                                    split='test',download=True,
+                                    split='test', download=True,
                                     transform=transform_test)
         train_dataset.nclass = 10
 
     elif args.dataset == 'mnist':
-        train_dataset = datasets.MNIST(args.data_dir, download=True,train=True, transform=transforms.ToTensor())
+        train_dataset = datasets.MNIST(args.data_dir, download=True, train=True, transform=transforms.ToTensor())
 
         normalize = transforms.Normalize(mean=MEANS['mnist'], std=STDS['mnist'])
         transform_test = transforms.Compose([transforms.ToTensor(), normalize])
 
-        val_dataset = datasets.MNIST(args.data_dir,download=True, train=False, transform=transform_test)
+        val_dataset = datasets.MNIST(args.data_dir, download=True, train=False, transform=transform_test)
         train_dataset.nclass = 10
 
     elif args.dataset == 'fashion':
         train_dataset = datasets.FashionMNIST(args.data_dir,
-                                              train=True,download=True,
+                                              train=True, download=True,
                                               transform=transforms.ToTensor())
 
         normalize = transforms.Normalize(mean=MEANS['fashion'], std=STDS['fashion'])
         transform_test = transforms.Compose([transforms.ToTensor(), normalize])
 
-        val_dataset = datasets.FashionMNIST(args.data_dir, download=True,train=False, transform=transform_test)
+        val_dataset = datasets.FashionMNIST(args.data_dir, download=True, train=False, transform=transform_test)
         train_dataset.nclass = 10
-    
+
     elif args.dataset == 'tinyimagenet':
         channel = 3
         mean = [0.485, 0.456, 0.406]
@@ -313,7 +314,7 @@ def load_resized_data(args):
         labels_train = labels_train.detach()
 
         train_dataset = TensorDataset(images_train, labels_train)  # no augmentation
-        train_dataset.nclass=200
+        train_dataset.nclass = 200
         images_val = data['images_val']
         labels_val = data['labels_val']
         images_val = images_val.detach().float() / 255.0
@@ -421,7 +422,7 @@ def add_loss(loss_sum, loss):
         return loss_sum + loss
 
 
-def matchloss(args, img_real, img_syn, lab_real, lab_syn, model):
+def matchloss(args, img_real, img_weight, img_syn, lab_real, lab_syn, model):
     """Matching losses (feature or gradient)
     """
     loss = None
@@ -437,6 +438,7 @@ def matchloss(args, img_real, img_syn, lab_real, lab_syn, model):
 
         output_real = model(img_real)
         loss_real = criterion(output_real, lab_real)
+        loss_real = (loss_real * img_weight).mean()
         g_real = torch.autograd.grad(loss_real, model.parameters())
         g_real = list((g.detach() for g in g_real))
 
@@ -478,11 +480,10 @@ def condense(args, logger, device='cuda'):
     # Define real dataset and loader
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     trainset, val_loader = load_resized_data(args)
-    images_all = []
-    labels_all = []
+
     images_all = [torch.unsqueeze(trainset[i][0], dim=0) for i in range(len(trainset))]
     labels_all = [trainset[i][1] for i in range(len(trainset))]
-    
+
     images_all = torch.cat(images_all, dim=0).to(device)
     labels_all = torch.tensor(labels_all, dtype=torch.long, device=device)
 
@@ -503,11 +504,11 @@ def condense(args, logger, device='cuda'):
     for i in range(nclass):
         length_list.append(len(indices_class[i]))
 
-    img_class=[]
+    img_class = []
     for i in range(args.nclass):
         img, lable = loader_real.class_sample(i, length_list[i])
         img_class.append(img)
-    print('class number:',len(img_class))
+    print('class number:', len(img_class))
 
     nch, hs, ws = trainset[0][0].shape
 
@@ -517,9 +518,9 @@ def condense(args, logger, device='cuda'):
     model = define_model(args, nclass).to(device)
     model.eval()
     optim_net = optim.SGD(model.parameters(),
-                        args.lr,
-                        momentum=args.momentum,
-                        weight_decay=args.weight_decay)
+                          args.lr,
+                          momentum=args.momentum,
+                          weight_decay=args.weight_decay)
     criterion = nn.CrossEntropyLoss()
     aug, aug_rand = diffaug(args)
 
@@ -527,10 +528,10 @@ def condense(args, logger, device='cuda'):
         print("Kmean initialize synset")
         for c in range(synset.nclass):
             img, lable = loader_real.class_sample(c, length_list[c])
-            
+
             strategy = NEW_Strategy(img, model)
-            query_idxs= strategy.query(args.ipc)
-            synset.data.data[c*synset.ipc:(c+1)*synset.ipc] = img[query_idxs].detach().data
+            query_idxs, _ = strategy.query(args.ipc)
+            synset.data.data[c * synset.ipc:(c + 1) * synset.ipc] = img[query_idxs].detach().data
     elif args.init == 'random':
         print("Random initialize synset")
         for c in range(synset.nclass):
@@ -539,13 +540,13 @@ def condense(args, logger, device='cuda'):
     elif args.init == 'mix':
         print("Mixed initialize synset")
         for c in range(synset.nclass):
-            if args.f2_init=='random':
-                img, _ = loader_real.class_sample(c, synset.ipc * synset.factor**2)
+            if args.f2_init == 'random':
+                img, _ = loader_real.class_sample(c, synset.ipc * synset.factor ** 2)
                 img = img.data.to(synset.device)
             else:
-                img=img_class[c]
+                img = img_class[c]
                 strategy = NEW_Strategy(img, model)
-                query_idxs= strategy.query(synset.ipc * synset.factor**2)
+                query_idxs, _ = strategy.query(synset.ipc * synset.factor ** 2)
                 img = img[query_idxs].detach()
                 img = img.data.to(synset.device)
 
@@ -562,23 +563,25 @@ def condense(args, logger, device='cuda'):
                     w_r = s + 1 if j < remained else s
                     img_part = F.interpolate(img[k * n:(k + 1) * n], size=(h_r, w_r))
                     synset.data.data[n * c:n * (c + 1), :, h_loc:h_loc + h_r,
-                                    w_loc:w_loc + w_r] = img_part
+                    w_loc:w_loc + w_r] = img_part
                     w_loc += w_r
                     k += 1
                 h_loc += h_r
 
     elif args.init == 'noise':
         pass
-    
-    query_list=torch.tensor(np.ones(shape=(nclass,args.batch_real)), dtype=torch.long, requires_grad=False, device=device)
-    print("init_size:",synset.data.size())
+
+    # query_list=torch.tensor(np.ones(shape=(nclass,args.batch_real)), dtype=torch.long, requires_grad=False, device=device)
+    query_list = dict()
+    subset_weight = torch.ones(args.batch_real).cuda()
+    print("init_size:", synset.data.size())
     save_img(os.path.join(args.save_dir, 'init.png'),
              synset.data,
              unnormalize=False,
              dataname=args.dataset)
 
     # Define augmentation function
-    
+
     save_img(os.path.join(args.save_dir, f'aug.png'),
              aug(synset.sample(0, max_size=args.batch_syn_max)[0]),
              unnormalize=True,
@@ -586,14 +589,15 @@ def condense(args, logger, device='cuda'):
     print("condense begin")
     if not args.test:
         synset.test(args, val_loader, logger, bench=False)
-    
+
     # Data distillation
     optim_img = torch.optim.SGD(synset.parameters(), lr=args.lr_img, momentum=args.mom_img)
 
     ts = utils.TimeStamp(args.time)
     n_iter = args.niter * 100 // args.inner_loop
     it_log = n_iter // 200
-    it_test = np.arange(0, n_iter+1, 40).tolist()
+    it_test = np.arange(0, n_iter + 1, 50).tolist()
+    print("test performance at: {}".format(it_test))
 
     logger(f"\nStart condensing with {args.match} matching for {n_iter} iteration")
     args.fix_iter = max(1, args.fix_iter)
@@ -609,9 +613,9 @@ def condense(args, logger, device='cuda'):
 
             if args.pt_from >= 0:
                 pretrain_sample(args, model)
-        
+
         loss_total = 0
-        
+
         synset.data.data = torch.clamp(synset.data.data, min=0., max=1.)
         for ot in range(args.inner_loop):
             ts.set()
@@ -619,24 +623,24 @@ def condense(args, logger, device='cuda'):
             for c in range(nclass):
 
                 if ot % args.interval == 0:
-                    
-                    img=img_class[c]
-                    
+                    img = img_class[c]
+
                     strategy = NEW_Strategy(img, model)
 
-                    query_idxs= strategy.query(args.batch_real)
-                    
+                    query_idxs, subset_weight = strategy.query(args.batch_real)
+
                     query_list[c] = query_idxs
 
-                images_all=img_class[c]
+                images_all = img_class[c]
                 img = images_all[query_list[c]]
-                lab = torch.tensor([np.ones(img.size(0))*c], dtype=torch.long, requires_grad=False, device=device).view(-1)
+                lab = torch.tensor([np.ones(img.size(0)) * c], dtype=torch.long, requires_grad=False,
+                                   device=device).view(-1)
                 img_syn, lab_syn = synset.sample(c, max_size=args.batch_syn_max)
                 ts.stamp("data")
                 n = img.shape[0]
                 img_aug = aug(torch.cat([img, img_syn]))
                 ts.stamp("aug")
-                loss = matchloss(args, img_aug[:n],  img_aug[n:], lab, lab_syn, model)
+                loss = matchloss(args, img_aug[:n], subset_weight, img_aug[n:], lab, lab_syn, model)
                 loss_total += loss.item()
                 ts.stamp("loss")
                 optim_img.zero_grad()
@@ -658,14 +662,13 @@ def condense(args, logger, device='cuda'):
 
             if (ot + 1) % 10 == 0:
                 ts.flush()
-
         # Logging
         if it % it_log == 0:
             logger(
-                f"{utils.get_time()} (Iter {it:3d}) loss: {loss_total/nclass/args.inner_loop:.1f}")
-            
+                f"{utils.get_time()} (Iter {it}) loss: {loss_total / nclass / args.inner_loop:.1f}")
+
         if (it + 1) in it_test:
-            save_img(os.path.join(args.save_dir, f'img{it+1}.png'),
+            save_img(os.path.join(args.save_dir, f'img{it + 1}.png'),
                      synset.data,
                      unnormalize=False,
                      dataname=args.dataset)
@@ -674,11 +677,12 @@ def condense(args, logger, device='cuda'):
             # synset.data.data = torch.clamp(synset.data.data, min=0., max=1.)
             torch.save(
                 [synset.data.detach().cpu(), synset.targets.cpu()],
-                os.path.join(args.save_dir, f'data{it+1}.pt'))
+                os.path.join(args.save_dir, f'data{it + 1}.pt'))
             print("img and data saved!")
 
             if not args.test:
                 synset.test(args, val_loader, logger)
+
 
 if __name__ == '__main__':
     import shutil
