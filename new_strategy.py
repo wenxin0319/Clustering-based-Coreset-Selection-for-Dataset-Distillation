@@ -1,6 +1,8 @@
+import cuml
 import torch
 import numpy as np
 from sklearnex import patch_sklearn
+
 patch_sklearn()
 from cuml import DBSCAN, AgglomerativeClustering
 from sklearn.neighbors import NearestCentroid
@@ -95,13 +97,11 @@ class NEW_Strategy:
         cur_features = self.get_embeddings(self.images)
         cur_features = cur_features.cpu().numpy()
         # Perform K-medoids clustering
-        km = KMedoids(n_clusters=n)
+        km = KMedoids(n_clusters=n, init="k-medoids++")
         km.fit(cur_features)
 
         # Get indices of medoids in the subset of class 'c'
         medoids_indices = km.medoid_indices_
-
-        # Map local indices in the class subset to global indices in the original dataset
         if weight:
             subset_weight = np.bincount(km.labels_)
         else:
@@ -110,17 +110,26 @@ class NEW_Strategy:
         return medoids_indices, torch.from_numpy(subset_weight).float().cuda()
 
     def cluster_KMeansPlusPlus(self, n, weight=False):
-        embeddings = self.get_embeddings(self.images)
-        index = torch.arange(len(embeddings), device='cuda')
-        kmeans = KMeans(n_clusters=n, mode='euclidean', init_method='++')
-        labels = kmeans.fit_predict(embeddings)
-        centers = kmeans.centroids
-        dist_matrix = euclidean_dist(centers, embeddings)
-        cluster_idx = index[torch.argmin(dist_matrix, dim=1)]
-        if weight:
-            subset_weight = np.bincount(labels.cpu().numpy())
-        else:
-            subset_weight = np.ones((len(labels),))
+        cur_features = self.get_embeddings(self.images)
+        cur_features = cur_features.cpu().numpy()
+
+        # Apply KMeans++ clustering
+        kmeans = cuml.KMeans(n_clusters=n)
+        kmeans.fit(cur_features)
+        labels = kmeans.labels_
+        centroids = kmeans.cluster_centers_
+
+        # Find the closest data point to each centroid
+        cluster_idx = list()
+        subset_weight = np.ones(len(set(labels))) if -1 not in set(labels) else np.ones(len(set(labels)) - 1)
+        for i in np.unique(labels):
+            points_idx = np.where(labels == i)[0]
+            target_points = cur_features[points_idx]
+            distances = np.linalg.norm(target_points - centroids[i], axis=1)
+            closest_point_idx = points_idx[np.argmin(distances)]
+            cluster_idx.append(closest_point_idx)
+            if weight:
+                subset_weight[i] = len(points_idx)
         subset_weight = subset_weight / np.sum(subset_weight) * len(subset_weight)
         return cluster_idx, torch.from_numpy(subset_weight).float().cuda()
 
@@ -135,8 +144,7 @@ class NEW_Strategy:
         centroids = clf.centroids_
 
         cluster_idx = list()
-        subset_weight = np.ones(len(set(labels))) if -1 not in set(labels) else np.ones(len(set(labels)) - 1)
-        for label in range(n):
+        for label in np.unique(labels):
             points_idx = np.where(labels == label)
             num_of_pictures_in_cluster = len(points_idx[0])
             if num_of_pictures_in_cluster <= 1:
@@ -145,11 +153,12 @@ class NEW_Strategy:
 
             target_points = cur_features[points_idx]
             centroid = centroids[label]
-            distances = np.linalg.norm(target_points.cpu() - centroid, axis=1)
+            distances = np.linalg.norm(target_points - centroid, axis=1)
             selected_array = np.argsort(distances)
             add_idx = points_idx[0][selected_array][:select_num]
             cluster_idx = cluster_idx + list(add_idx)
-            if weight:
-                subset_weight[label] = len(points_idx)
+            # if weight:
+            #     subset_weight[label] = len(points_idx)
+        subset_weight = np.ones(len(cluster_idx))
         subset_weight = subset_weight / np.sum(subset_weight) * len(subset_weight)
         return cluster_idx, torch.from_numpy(subset_weight).float().cuda()

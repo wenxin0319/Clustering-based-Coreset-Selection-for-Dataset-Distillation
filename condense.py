@@ -16,6 +16,7 @@ from misc.augment import DiffAug
 from misc import utils
 from math import ceil
 import glob
+import wandb
 from new_strategy import NEW_Strategy
 
 
@@ -478,8 +479,22 @@ def condense(args, logger, device='cuda'):
     """Optimize condensed data
     """
 
-    print("==================== Doing Dataset Distillation, Cluster Method: {} ====================".format(
-        args.cluster_method))
+    wandb.init(
+        name=f"DC_Cluster_{args.cluster_method}_IPC_{args.ipc}_Weight_{args.weight}",
+
+        # set the wandb project where this run will be logged
+        project="CS245_Final_Project",
+
+        # track hyperparameters and run metadata
+        config={
+            "Dataset": args.dataset,
+            "Cluster Method": args.cluster_method,
+            "Weight": args.weight,
+            "ipc": args.ipc
+        }
+    )
+
+    print(f"==================== Doing Dataset Distillation, Cluster Method: {args.cluster_method} ====================")
 
     # Define real dataset and loader
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -542,17 +557,17 @@ def condense(args, logger, device='cuda'):
             img, _ = loader_real.class_sample(c, synset.ipc)
             synset.data.data[synset.ipc * c:synset.ipc * (c + 1)] = img.data.to(synset.device)
     elif args.init == 'mix':
-        print("==================== Mixed initialize synset, cluster method: {} ====================".
-              format(args.cluster_method))
         for c in range(synset.nclass):
-            if args.f2_init == 'random':
+            if args.f2_init == 'random' or args.cluster_method == "Agglomerative":
+                print("==================== Real initialize synset ====================")
                 img, _ = loader_real.class_sample(c, synset.ipc * synset.factor ** 2)
                 img = img.data.to(synset.device)
             else:
+                print(f"==================== Mixed initialize synset, cluster method: {args.cluster_method} ====================")
                 img = img_class[c]
                 strategy = NEW_Strategy(img, model)
                 if args.cluster_method == "DBSCAN":
-                    query_idx, _ = strategy.cluster_DBSCAN(2, 15)
+                    query_idx, _ = strategy.cluster_DBSCAN(3, 15)
                 elif args.cluster_method == "Birch":
                     query_idx, _ = strategy.cluster_BIRCH(synset.ipc * synset.factor ** 2)
                 elif args.cluster_method == "Kmedoids":
@@ -695,6 +710,7 @@ def condense(args, logger, device='cuda'):
         if it % it_log == 0:
             logger(
                 f"{utils.get_time()} (Iter {it}) loss: {loss_total / nclass / args.inner_loop:.1f}")
+            wandb.log({"Iteration": it, "Loss": loss_total / nclass / args.inner_loop})
 
         if (it + 1) in it_test:
             save_img(os.path.join(args.save_dir, f'img{it + 1}.png'),

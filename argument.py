@@ -259,7 +259,7 @@ parser.add_argument('--same_compute',
                     help='match evaluation training steps for IDC')
 parser.add_argument('--name', type=str, default='', help='name of the test data folder')
 parser.add_argument('--cluster_method', type=str, default='kmeans', help='clustering method')
-parser.add_argument('--weight', type=bool, default=False)
+parser.add_argument('--weight', type=str2bool, default=False)
 
 parser.set_defaults(bottleneck=True)
 parser.set_defaults(verbose=False)

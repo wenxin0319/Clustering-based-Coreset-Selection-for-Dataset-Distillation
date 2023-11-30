@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+import wandb
 from torch.utils.data import Subset
 from train import define_model, train
 from data import TensorDataset, ImageFolder, MultiEpochsDataLoader
@@ -403,8 +404,12 @@ def test_data(args,
             best_acc, acc = train(args, model, train_loader, val_loader, logger=logger)
             best_acc_l.append(best_acc)
             acc_l.append(acc)
+        best_acc_log = np.mean(best_acc_l)
         logger(
-            f'Repeat {repeat} => Best, last acc: {np.mean(best_acc_l):.1f} {np.mean(acc_l):.1f}\n')
+            f'Repeat {repeat} => Best, last acc: {best_acc_log:.1f} {np.mean(acc_l):.1f}\n')
+
+        wandb.log({"Accuracy": best_acc_log})
+
 
 
 if __name__ == '__main__':

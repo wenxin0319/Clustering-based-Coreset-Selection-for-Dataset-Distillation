@@ -1,1 +1,0 @@
-python condense.py --reproduce  -d cifar10 -f 1 --ipc 10
