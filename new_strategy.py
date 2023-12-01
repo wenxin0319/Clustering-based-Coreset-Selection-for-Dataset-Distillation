@@ -97,7 +97,7 @@ class NEW_Strategy:
         cur_features = self.get_embeddings(self.images)
         cur_features = cur_features.cpu().numpy()
         # Perform K-medoids clustering
-        km = KMedoids(n_clusters=n, init="k-medoids++")
+        km = KMedoids(n_clusters=n)
         km.fit(cur_features)
 
         # Get indices of medoids in the subset of class 'c'
