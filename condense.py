@@ -619,7 +619,7 @@ def condense(args, logger, device='cuda'):
              dataname=args.dataset)
     print("condense begin")
     if not args.test:
-        synset.test(args, val_loader, logger, bench=False)
+        synset.test(args, val_loader, logger, 0, bench=False)
 
     # Data distillation
     optim_img = torch.optim.SGD(synset.parameters(), lr=args.lr_img, momentum=args.mom_img)
