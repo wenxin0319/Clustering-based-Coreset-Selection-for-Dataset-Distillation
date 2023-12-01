@@ -239,11 +239,11 @@ class Synthesizer():
                                              persistent_workers=nw > 0)
         return train_loader
 
-    def test(self, args, val_loader, logger, bench=True):
+    def test(self, args, val_loader, logger, iter, bench=True):
         """Condensed data evaluation
         """
         loader = self.loader(args, args.augment)
-        test_data(args, loader, val_loader, test_resnet=False, logger=logger)
+        test_data(args, loader, val_loader, iter, test_resnet=False, logger=logger)
 
         # if bench and not (args.dataset in ['mnist', 'fashion']):
         #     test_data(args, loader, val_loader, test_resnet=False, logger=logger)
@@ -726,7 +726,7 @@ def condense(args, logger, device='cuda'):
             print("img and data saved!")
 
             if not args.test:
-                synset.test(args, val_loader, logger)
+                synset.test(args, val_loader, logger, it)
 
 
 if __name__ == '__main__':

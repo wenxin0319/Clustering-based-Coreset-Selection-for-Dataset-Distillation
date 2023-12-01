@@ -379,6 +379,7 @@ def load_data_path(args):
 def test_data(args,
               train_loader,
               val_loader,
+              iter,
               test_resnet=False,
               model_fn=None,
               repeat=1,
@@ -408,44 +409,44 @@ def test_data(args,
         logger(
             f'Repeat {repeat} => Best, last acc: {best_acc_log:.1f} {np.mean(acc_l):.1f}\n')
 
-        wandb.log({"Accuracy": best_acc_log})
+        wandb.log({"Iteration":iter, "Accuracy": best_acc_log})
 
 
 
-if __name__ == '__main__':
-    from argument import args
-    import torch.backends.cudnn as cudnn
-    import numpy as np
-    cudnn.benchmark = True
-
-    if args.same_compute and args.factor > 1:
-        args.epochs = int(args.epochs / args.factor**2)
-
-    path_list = return_data_path(args)
-    for p in path_list:
-        args.save_dir = os.path.join(DATA_PATH, p)
-        if args.slct_type == 'herding':
-            train_dataset, val_dataset = herding(args)
-        else:
-            train_dataset, val_dataset = load_data_path(args)
-
-        train_loader = MultiEpochsDataLoader(train_dataset,
-                                             batch_size=args.batch_size,
-                                             shuffle=True,
-                                             num_workers=args.workers if args.augment else 0,
-                                             persistent_workers=args.augment > 0)
-        val_loader = MultiEpochsDataLoader(val_dataset,
-                                           batch_size=args.batch_size // 2,
-                                           shuffle=False,
-                                           persistent_workers=True,
-                                           num_workers=4)
-
-        test_data(args, train_loader, val_loader, repeat=args.repeat, test_resnet=False)
-        if args.dataset[:5] == 'cifar':
-            test_data(args, train_loader, val_loader, repeat=args.repeat, model_fn=resnet10_bn)
-            if (not args.same_compute) and (args.ipc >= 50 and args.factor > 1):
-                args.epochs = 400
-            test_data(args, train_loader, val_loader, repeat=args.repeat, model_fn=densenet)
-        elif args.dataset == 'imagenet':
-            test_data(args, train_loader, val_loader, repeat=args.repeat, model_fn=resnet18_bn)
-            test_data(args, train_loader, val_loader, repeat=args.repeat, model_fn=efficientnet)
+# if __name__ == '__main__':
+#     from argument import args
+#     import torch.backends.cudnn as cudnn
+#     import numpy as np
+#     cudnn.benchmark = True
+#
+#     if args.same_compute and args.factor > 1:
+#         args.epochs = int(args.epochs / args.factor**2)
+#
+#     path_list = return_data_path(args)
+#     for p in path_list:
+#         args.save_dir = os.path.join(DATA_PATH, p)
+#         if args.slct_type == 'herding':
+#             train_dataset, val_dataset = herding(args)
+#         else:
+#             train_dataset, val_dataset = load_data_path(args)
+#
+#         train_loader = MultiEpochsDataLoader(train_dataset,
+#                                              batch_size=args.batch_size,
+#                                              shuffle=True,
+#                                              num_workers=args.workers if args.augment else 0,
+#                                              persistent_workers=args.augment > 0)
+#         val_loader = MultiEpochsDataLoader(val_dataset,
+#                                            batch_size=args.batch_size // 2,
+#                                            shuffle=False,
+#                                            persistent_workers=True,
+#                                            num_workers=4)
+#
+#         test_data(args, train_loader, val_loader, repeat=args.repeat, test_resnet=False)
+#         if args.dataset[:5] == 'cifar':
+#             test_data(args, train_loader, val_loader, repeat=args.repeat, model_fn=resnet10_bn)
+#             if (not args.same_compute) and (args.ipc >= 50 and args.factor > 1):
+#                 args.epochs = 400
+#             test_data(args, train_loader, val_loader, repeat=args.repeat, model_fn=densenet)
+#         elif args.dataset == 'imagenet':
+#             test_data(args, train_loader, val_loader, repeat=args.repeat, model_fn=resnet18_bn)
+#             test_data(args, train_loader, val_loader, repeat=args.repeat, model_fn=efficientnet)
