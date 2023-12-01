@@ -627,7 +627,10 @@ def condense(args, logger, device='cuda'):
     ts = utils.TimeStamp(args.time)
     n_iter = args.niter * 100 // args.inner_loop
     it_log = n_iter // 200
+    if args.ipc == 10:
+        it_log = n_iter // 100
     it_test = np.arange(0, n_iter + 1, 50).tolist()
+    print(f"Total iteration: {n_iter}, inner loop: {args.inner_loop}")
     print("test performance at: {}".format(it_test))
 
     logger(f"\nStart condensing with {args.match} matching for {n_iter} iteration")
