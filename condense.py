@@ -567,7 +567,7 @@ def condense(args, logger, device='cuda'):
                 img = img_class[c]
                 strategy = NEW_Strategy(img, model)
                 if args.cluster_method == "DBSCAN":
-                    query_idx, _ = strategy.cluster_DBSCAN(3, 15)
+                    query_idx, _ = strategy.cluster_DBSCAN(2, 15)
                 elif args.cluster_method == "Birch":
                     query_idx, _ = strategy.cluster_BIRCH(synset.ipc * synset.factor ** 2)
                 elif args.cluster_method == "Kmedoids":
