@@ -245,8 +245,8 @@ class Synthesizer():
         loader = self.loader(args, args.augment)
         test_data(args, loader, val_loader, test_resnet=False, logger=logger)
 
-        if bench and not (args.dataset in ['mnist', 'fashion']):
-            test_data(args, loader, val_loader, test_resnet=False, logger=logger)
+        # if bench and not (args.dataset in ['mnist', 'fashion']):
+        #     test_data(args, loader, val_loader, test_resnet=False, logger=logger)
 
 
 def load_resized_data(args):
