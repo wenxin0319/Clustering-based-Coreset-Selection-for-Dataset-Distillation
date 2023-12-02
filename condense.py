@@ -490,7 +490,8 @@ def condense(args, logger, device='cuda'):
             "Dataset": args.dataset,
             "Cluster Method": args.cluster_method,
             "Weight": args.weight,
-            "ipc": args.ipc
+            "ipc": args.ipc,
+            "Space": args.space
         }
     )
 
@@ -672,7 +673,7 @@ def condense(args, logger, device='cuda'):
                     elif args.cluster_method == "Agglomerative":
                         query_idx, subset_weight = strategy.cluster_Agglomerative(args.batch_real, args.weight)
                     else:
-                        query_idx, subset_weight = strategy.query(args.batch_real, args.weight)
+                        query_idx, subset_weight = strategy.query(args.batch_real, args.weight, args.space)
 
                     # query_idx, subset_weight = strategy.query(args.batch_real)
 

@@ -2,6 +2,7 @@ import cuml
 import torch
 import numpy as np
 from sklearnex import patch_sklearn
+from torch import nn
 
 patch_sklearn()
 from cuml import DBSCAN, AgglomerativeClustering
@@ -9,6 +10,7 @@ from sklearn.neighbors import NearestCentroid
 from fast_pytorch_kmeans import KMeans
 from sklearn.cluster import Birch
 from sklearn_extra.cluster import KMedoids
+from torch.utils.data import DataLoader, TensorDataset
 
 
 def euclidean_dist(x, y):
@@ -32,9 +34,29 @@ class NEW_Strategy:
             features = embed(images).detach()
         return features
 
-    def query(self, n, weight=False):
+    def predict(self, batch_size=128):
 
-        embeddings = self.get_embeddings(self.images)
+        self.net.eval()
+
+        data = self.images
+        if not isinstance(self.images, torch.Tensor):
+            data = torch.Tensor(self.images)
+
+        dataloader = DataLoader(TensorDataset(data), batch_size=batch_size)
+
+        preds = torch.zeros(data.size[0], 10)
+        with torch.no_grad():
+            for i, (input, idx) in enumerate(dataloader):
+                input_var = input.cuda()
+                preds[idx, :] = nn.Softmax(dim=1)(self.net(input_var))
+
+        return preds
+
+    def query(self, n, weight=False, space='Feature'):
+        if space == "Gradient":
+            embeddings = self.predict(self.net)
+        else:
+            embeddings = self.get_embeddings(self.images)
 
         index = torch.arange(len(embeddings), device='cuda')
 
