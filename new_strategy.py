@@ -85,8 +85,11 @@ class NEW_Strategy:
         subset_weight = subset_weight / np.sum(subset_weight) * len(subset_weight)
         return q_idxs, torch.from_numpy(subset_weight).float().cuda()
 
-    def cluster_DBSCAN(self, min_samples, eps, weight=False):
-        cur_features = self.get_embeddings(self.images)
+    def cluster_DBSCAN(self, min_samples, eps, weight=False, space='Feature'):
+        if space == "Gradient":
+            cur_features = self.predict()
+        else:
+            cur_features = self.get_embeddings(self.images)
         cur_features = cur_features.cpu().numpy()
 
         dbscan = DBSCAN(min_samples=min_samples, eps=eps)
@@ -107,8 +110,11 @@ class NEW_Strategy:
         subset_weight = subset_weight / np.sum(subset_weight) * len(subset_weight)
         return cluster_idx, torch.from_numpy(subset_weight).float().cuda()
 
-    def cluster_BIRCH(self, n, weight=False):
-        cur_features = self.get_embeddings(self.images)
+    def cluster_BIRCH(self, n, weight=False, space='Feature'):
+        if space == "Gradient":
+            cur_features = self.predict()
+        else:
+            cur_features = self.get_embeddings(self.images)
         cur_features = cur_features.cpu().numpy()
         birch = Birch(n_clusters=n)
         birch.fit(cur_features)
@@ -127,8 +133,11 @@ class NEW_Strategy:
         subset_weight = subset_weight / np.sum(subset_weight) * len(subset_weight)
         return cluster_idx, torch.from_numpy(subset_weight).float().cuda()
 
-    def cluster_kmedoids(self, n, weight=False):
-        cur_features = self.get_embeddings(self.images)
+    def cluster_kmedoids(self, n, weight=False, space='Feature'):
+        if space == "Gradient":
+            cur_features = self.predict()
+        else:
+            cur_features = self.get_embeddings(self.images)
         cur_features = cur_features.cpu().numpy()
         # Perform K-medoids clustering
         km = KMedoids(n_clusters=n)
@@ -143,8 +152,11 @@ class NEW_Strategy:
         subset_weight = subset_weight / np.sum(subset_weight) * len(subset_weight)
         return medoids_indices, torch.from_numpy(subset_weight).float().cuda()
 
-    def cluster_KMeansPlusPlus(self, n, weight=False):
-        cur_features = self.get_embeddings(self.images)
+    def cluster_KMeansPlusPlus(self, n, weight=False, space='Feature'):
+        if space == "Gradient":
+            cur_features = self.predict()
+        else:
+            cur_features = self.get_embeddings(self.images)
         cur_features = cur_features.cpu().numpy()
 
         # Apply KMeans++ clustering

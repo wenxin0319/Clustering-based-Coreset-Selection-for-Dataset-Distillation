@@ -578,7 +578,7 @@ def condense(args, logger, device='cuda'):
                 elif args.cluster_method == "Agglomerative":
                     query_idx, _ = strategy.cluster_Agglomerative(synset.ipc * synset.factor ** 2)
                 else:
-                    query_idx, _ = strategy.query(synset.ipc * synset.factor ** 2, space="Gradient")
+                    query_idx, _ = strategy.query(synset.ipc * synset.factor ** 2)
                 img = img[query_idx].detach()
                 img = img.data.to(synset.device)
 
@@ -663,13 +663,13 @@ def condense(args, logger, device='cuda'):
                     strategy = NEW_Strategy(img, model)
 
                     if args.cluster_method == "DBSCAN":
-                        query_idx, subset_weight = strategy.cluster_DBSCAN(2, 15, args.weight)
+                        query_idx, subset_weight = strategy.cluster_DBSCAN(2, 15, args.weight, args.space)
                     elif args.cluster_method == "Birch":
-                        query_idx, subset_weight = strategy.cluster_BIRCH(args.batch_real, args.weight)
+                        query_idx, subset_weight = strategy.cluster_BIRCH(args.batch_real, args.weight, args.space)
                     elif args.cluster_method == "Kmedoids":
-                        query_idx, subset_weight = strategy.cluster_kmedoids(args.batch_real, args.weight)
+                        query_idx, subset_weight = strategy.cluster_kmedoids(args.batch_real, args.weight, args.space)
                     elif args.cluster_method == "Kmeans++":
-                        query_idx, subset_weight = strategy.cluster_KMeansPlusPlus(args.batch_real,args.weight)
+                        query_idx, subset_weight = strategy.cluster_KMeansPlusPlus(args.batch_real,args.weight, args.space)
                     elif args.cluster_method == "Agglomerative":
                         query_idx, subset_weight = strategy.cluster_Agglomerative(args.batch_real, args.weight)
                     else:
