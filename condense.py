@@ -578,7 +578,7 @@ def condense(args, logger, device='cuda'):
                 elif args.cluster_method == "Agglomerative":
                     query_idx, _ = strategy.cluster_Agglomerative(synset.ipc * synset.factor ** 2)
                 else:
-                    query_idx, _ = strategy.query(synset.ipc * synset.factor ** 2)
+                    query_idx, _ = strategy.query(synset.ipc * synset.factor ** 2, space="Gradient")
                 img = img[query_idx].detach()
                 img = img.data.to(synset.device)
 

@@ -10,7 +10,7 @@ from sklearn.neighbors import NearestCentroid
 from fast_pytorch_kmeans import KMeans
 from sklearn.cluster import Birch
 from sklearn_extra.cluster import KMedoids
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, Dataset
 
 
 def euclidean_dist(x, y):
@@ -21,6 +21,18 @@ def euclidean_dist(x, y):
     dist.addmm_(1, -2, x, y.t())
     dist = dist.clamp(min=1e-12).sqrt()  # for numerical stability
     return dist
+
+
+class IndexDataset(Dataset):
+    def __init__(self, data):
+        self.data = data
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        data_point = self.data[idx]
+        return idx, data_point
 
 
 class NEW_Strategy:
@@ -42,11 +54,11 @@ class NEW_Strategy:
         if not isinstance(self.images, torch.Tensor):
             data = torch.Tensor(self.images)
 
-        dataloader = DataLoader(TensorDataset(data), batch_size=batch_size)
+        dataloader = DataLoader(IndexDataset(data), batch_size=batch_size)
 
-        preds = torch.zeros(data.size[0], 10)
+        preds = torch.zeros(data.size(0), 10).cuda()
         with torch.no_grad():
-            for i, (input, idx) in enumerate(dataloader):
+            for i, (idx, input) in enumerate(dataloader):
                 input_var = input.cuda()
                 preds[idx, :] = nn.Softmax(dim=1)(self.net(input_var))
 
@@ -54,7 +66,7 @@ class NEW_Strategy:
 
     def query(self, n, weight=False, space='Feature'):
         if space == "Gradient":
-            embeddings = self.predict(self.net)
+            embeddings = self.predict()
         else:
             embeddings = self.get_embeddings(self.images)
 
