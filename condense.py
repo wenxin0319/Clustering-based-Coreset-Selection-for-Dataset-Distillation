@@ -574,7 +574,7 @@ def condense(args, logger, device='cuda'):
                 elif args.cluster_method == "Kmedoids":
                     query_idx, _ = strategy.cluster_kmedoids(synset.ipc * synset.factor ** 2)
                 elif args.cluster_method == "Kmeans++":
-                    query_idx, _ = strategy.cluster_kmedoids(synset.ipc * synset.factor ** 2)
+                    query_idx, _ = strategy.cluster_KMeansPlusPlus(synset.ipc * synset.factor ** 2)
                 elif args.cluster_method == "Agglomerative":
                     query_idx, _ = strategy.cluster_Agglomerative(synset.ipc * synset.factor ** 2)
                 else:
