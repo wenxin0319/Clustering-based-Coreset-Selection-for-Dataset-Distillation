@@ -65,54 +65,26 @@ class NEW_Strategy:
         return preds
 
     def query(self, n, weight=False, space='Feature'):
+
         if space == "Gradient":
-            cur_features = self.predict()
+            embeddings = self.predict()
         else:
-            cur_features = self.get_embeddings(self.images)
-        cur_features = cur_features.cpu().numpy()
+            embeddings = self.get_embeddings(self.images)
 
-        # Apply KMeans++ clustering
-        kmeans = cuml.KMeans(n_clusters=n, init="random")
-        kmeans.fit(cur_features)
-        labels = kmeans.labels_
-        centroids = kmeans.cluster_centers_
+        index = torch.arange(len(embeddings), device='cuda')
 
-        # Find the closest data point to each centroid
-        cluster_idx = list()
-        subset_weight = np.ones(len(set(labels))) if -1 not in set(labels) else np.ones(len(set(labels)) - 1)
-        for i in np.unique(labels):
-            points_idx = np.where(labels == i)[0]
-            target_points = cur_features[points_idx]
-            distances = np.linalg.norm(target_points - centroids[i], axis=1)
-            closest_point_idx = points_idx[np.argmin(distances)]
-            cluster_idx.append(closest_point_idx)
-            if weight:
-                subset_weight[i] = len(points_idx)
+        kmeans = KMeans(n_clusters=n, mode='euclidean')
+        labels = kmeans.fit_predict(embeddings)
+        centers = kmeans.centroids
+
+        dist_matrix = euclidean_dist(centers, embeddings)
+        q_idxs = index[torch.argmin(dist_matrix, dim=1)]
+        if weight:
+            subset_weight = np.bincount(labels.cpu().numpy())
+        else:
+            subset_weight = np.ones((len(labels),))
         subset_weight = subset_weight / np.sum(subset_weight) * len(subset_weight)
-        return cluster_idx, torch.from_numpy(subset_weight).float().cuda()
-
-
-
-
-        # if space == "Gradient":
-        #     embeddings = self.predict()
-        # else:
-        #     embeddings = self.get_embeddings(self.images)
-        #
-        # index = torch.arange(len(embeddings), device='cuda')
-        #
-        # kmeans = KMeans(n_clusters=n, mode='euclidean')
-        # labels = kmeans.fit_predict(embeddings)
-        # centers = kmeans.centroids
-        #
-        # dist_matrix = euclidean_dist(centers, embeddings)
-        # q_idxs = index[torch.argmin(dist_matrix, dim=1)]
-        # if weight:
-        #     subset_weight = np.bincount(labels.cpu().numpy())
-        # else:
-        #     subset_weight = np.ones((len(labels),))
-        # subset_weight = subset_weight / np.sum(subset_weight) * len(subset_weight)
-        # return q_idxs, torch.from_numpy(subset_weight).float().cuda()
+        return q_idxs, torch.from_numpy(subset_weight).float().cuda()
 
     def cluster_DBSCAN(self, min_samples, eps, weight=False, space='Feature'):
         if space == "Gradient":
