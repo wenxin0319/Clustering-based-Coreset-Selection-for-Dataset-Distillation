@@ -8,7 +8,7 @@ This project is an exploration of improvement for a dataset distillation algorit
 ### Environment:
 Be sure run code on Linux or Windows WSL2. Windows and macOS is not supported.
 
-Make sure you have python version ```3.10``` and ```cuda version >= 12.0``` with nvidia GPU suppoerted.
+Make sure you have python version ```3.10``` and ```cuda version >= 12.0``` with Nvidia GPU supported.
 
 Make sure you have a wandb account, we monitor our results on wandb.
 
